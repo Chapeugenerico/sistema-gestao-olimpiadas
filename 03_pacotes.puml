@@ -1,0 +1,148 @@
+@startuml Diagrama_de_Pacotes
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam ArrowColor #2C3E50
+skinparam PackageBorderColor #2980B9
+skinparam PackageBackgroundColor #EBF5FB
+skinparam PackageFontSize 13
+skinparam PackageFontStyle bold
+skinparam RectangleBorderColor #7F8C8D
+skinparam RectangleBackgroundColor #F8F9FA
+skinparam NoteBackgroundColor #FFFDE7
+skinparam NoteBorderColor #F39C12
+
+title <b>Diagrama de Pacotes</b>\nSistema de Gestão Olímpica
+
+' =====================
+' CAMADA: APRESENTAÇÃO
+' =====================
+package "presentation" as P_PRES #D6EAF8 {
+  package "controllers" as P_CTRL {
+    [CompetitionController]
+    [InscricaoController]
+    [LocalController]
+    [ResultadoController]
+    [RelatorioController]
+  }
+  package "dto" as P_DTO {
+    [CompetitionDTO]
+    [InscricaoDTO]
+    [ResultadoDTO]
+    [RelatorioDTO]
+  }
+}
+
+' =====================
+' CAMADA: NEGÓCIO
+' =====================
+package "business" as P_BIZ #D5F5E3 {
+  package "services" as P_SVC {
+    [CompetitionService]
+    [InscricaoService]
+    [LocalService]
+    [ResultadoService]
+    [RelatorioService]
+  }
+  package "validators" as P_VAL {
+    [ConflitoPorarioValidator]
+    [PaisRepresentadoValidator]
+    [InscricaoValidator]
+  }
+}
+
+' =====================
+' CAMADA: DOMÍNIO
+' =====================
+package "domain" as P_DOM #FDEBD0 {
+  package "entities" as P_ENT {
+    [Competicao]
+    [Atleta]
+    [Local]
+    [Resultado]
+    [Pais]
+    [Inscricao]
+    [Classificacao]
+  }
+  package "enums" as P_ENUM {
+    [StatusCompeticao]
+    [StatusInscricao]
+    [TipoMedalha]
+  }
+}
+
+' =====================
+' CAMADA: INFRAESTRUTURA
+' =====================
+package "infrastructure" as P_INFRA #F9EBEA {
+  package "repositories" as P_REPO {
+    [AtletaRepository]
+    [CompetitionRepository]
+    [LocalRepository]
+    [ResultadoRepository]
+  }
+  package "persistence" as P_PERS {
+    [JPA / ORM Config]
+    [DataSource Config]
+  }
+  package "messaging" as P_MSG {
+    [NotificationPublisher]
+    [EventConsumer]
+  }
+  package "export" as P_EXP {
+    [PDFExporter]
+    [ExcelExporter]
+  }
+}
+
+' =====================
+' CAMADA: CONFIGURAÇÃO
+' =====================
+package "config" as P_CFG #F4ECF7 {
+  [SecurityConfig]
+  [SwaggerConfig]
+  [CacheConfig]
+  [AppProperties]
+}
+
+' =====================
+' DEPENDÊNCIAS ENTRE PACOTES
+' =====================
+
+' Apresentação → Negócio
+P_PRES ..> P_BIZ : <<usa>>
+
+' Apresentação → Domínio (DTOs referenciam entidades)
+P_PRES ..> P_DOM : <<usa>>
+
+' Negócio → Domínio
+P_BIZ ..> P_DOM : <<usa>>
+
+' Negócio → Infraestrutura (através de interfaces)
+P_BIZ ..> P_REPO : <<usa>>
+
+' Infraestrutura → Domínio
+P_INFRA ..> P_DOM : <<usa>>
+
+' Config é usada por todos
+P_PRES ..> P_CFG : <<usa>>
+P_BIZ  ..> P_CFG : <<usa>>
+P_INFRA ..> P_CFG : <<usa>>
+
+note bottom of P_DOM
+  Núcleo da aplicação.
+  Não depende de nenhuma
+  outra camada (Domain-Driven).
+end note
+
+note right of P_INFRA
+  Implementa as interfaces
+  definidas em business.
+  Detalhe técnico isolado.
+end note
+
+note top of P_PRES
+  Recebe requisições HTTP
+  e delega para os serviços.
+end note
+
+@enduml
