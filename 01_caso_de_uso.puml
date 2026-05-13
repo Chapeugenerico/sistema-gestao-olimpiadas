@@ -1,0 +1,104 @@
+@startuml Diagrama_de_Caso_de_Uso
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #E8F4FD
+  BorderColor #2980B9
+  FontSize 12
+}
+skinparam actor {
+  BackgroundColor #F9E79F
+  BorderColor #F39C12
+}
+skinparam ArrowColor #2C3E50
+skinparam PackageBorderColor #7F8C8D
+skinparam PackageBackgroundColor #F8F9FA
+
+title <b>Diagrama de Caso de Uso</b>\nSistema de Gestão Olímpica
+
+' Atores
+actor "Administrador\nOlímpico" as Admin
+actor "Atleta" as Atleta
+actor "Comitê\nOlímpico" as Comite
+actor "Gestor\nde Locais" as Gestor
+
+' Sistema
+rectangle "Sistema de Gestão Olímpica" {
+
+  package "Gestão de Competições" {
+    usecase "Cadastrar Competição" as UC1
+    usecase "Editar Competição" as UC2
+    usecase "Cancelar Competição" as UC3
+    usecase "Consultar Competições" as UC4
+  }
+
+  package "Gestão de Atletas" {
+    usecase "Inscrever Atleta" as UC5
+    usecase "Cancelar Inscrição" as UC6
+    usecase "Consultar Inscrições" as UC7
+    usecase "Validar País\nRepresentado" as UC8
+  }
+
+  package "Gestão de Locais" {
+    usecase "Alocar Local" as UC9
+    usecase "Verificar Disponibilidade\nde Local" as UC10
+    usecase "Liberar Local" as UC11
+    usecase "Consultar Agenda\nde Locais" as UC12
+  }
+
+  package "Controle de Resultados" {
+    usecase "Registrar Resultados" as UC13
+    usecase "Definir Classificação\n(1º, 2º, 3º Lugar)" as UC14
+    usecase "Homologar Resultados" as UC15
+    usecase "Consultar Resultados" as UC16
+  }
+
+  package "Relatórios" {
+    usecase "Gerar Relatório\nde Medalhas" as UC17
+    usecase "Visualizar Ranking\nde Países" as UC18
+    usecase "Exportar Relatório" as UC19
+  }
+
+}
+
+' Relacionamentos do Administrador
+Admin --> UC1
+Admin --> UC2
+Admin --> UC3
+Admin --> UC4
+Admin --> UC9
+Admin --> UC11
+Admin --> UC13
+Admin --> UC15
+
+' Relacionamentos do Atleta
+Atleta --> UC5
+Atleta --> UC6
+Atleta --> UC7
+Atleta --> UC16
+
+' Relacionamentos do Comitê
+Comite --> UC17
+Comite --> UC18
+Comite --> UC19
+Comite --> UC15
+Comite --> UC4
+
+' Relacionamentos do Gestor de Locais
+Gestor --> UC9
+Gestor --> UC10
+Gestor --> UC11
+Gestor --> UC12
+
+' Relacionamentos <<include>> e <<extend>>
+UC1 ..> UC9 : <<include>>
+UC5 ..> UC8 : <<include>>
+UC9 ..> UC10 : <<include>>
+UC13 ..> UC14 : <<include>>
+UC17 ..> UC18 : <<include>>
+UC2 ..> UC4 : <<extend>>
+UC3 ..> UC11 : <<extend>>
+UC17 ..> UC19 : <<extend>>
+
+@enduml

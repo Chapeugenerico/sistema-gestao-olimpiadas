@@ -1,0 +1,160 @@
+@startuml Diagrama_de_Implantacao
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam NodeBackgroundColor #EBF5FB
+skinparam NodeBorderColor #2980B9
+skinparam ComponentBackgroundColor #EAFAF1
+skinparam ComponentBorderColor #27AE60
+skinparam DatabaseBackgroundColor #FDEDEC
+skinparam DatabaseBorderColor #E74C3C
+skinparam ArrowColor #2C3E50
+skinparam CloudBackgroundColor #F8F9FA
+skinparam CloudBorderColor #7F8C8D
+skinparam ArtifactBackgroundColor #FEF9E7
+skinparam ArtifactBorderColor #F39C12
+
+title <b>Diagrama de Implantação</b>\nSistema de Gestão Olímpica
+
+' =====================
+' DISPOSITIVOS DOS USUÁRIOS
+' =====================
+node "Dispositivo do Usuário\n(Atleta / Comitê)" as UserDevice <<device>> {
+  component "Navegador Web\n(Chrome / Firefox)" as Browser
+  component "App Mobile\n(iOS / Android)" as MobileApp
+}
+
+node "Estação Administrativa\n(Operadores Olímpicos)" as AdminDevice <<device>> {
+  component "Navegador Web\n(Portal Admin)" as AdminBrowser
+}
+
+' =====================
+' ZONA DESMILITARIZADA (DMZ)
+' =====================
+cloud "DMZ / Internet" as DMZ {
+  component "CDN\n(Cloudflare / CloudFront)" as CDN
+  component "Firewall /\nWAF" as Firewall
+}
+
+' =====================
+' INFRAESTRUTURA CLOUD (AWS / Azure / GCP)
+' =====================
+cloud "Infraestrutura Cloud\n(AWS / Azure)" as Cloud {
+
+  ' Balanceador de Carga
+  node "Load Balancer\n(HTTPS :443)" as LB <<load balancer>> {
+    component "Nginx / ALB" as NginxLB
+  }
+
+  ' Cluster de Aplicação
+  node "Cluster de Aplicação\n(Kubernetes)" as AppCluster <<execution environment>> {
+
+    node "Pod: API Gateway" as PodGW {
+      component "API Gateway\n(Node.js)" as GWComp
+      artifact "gateway.jar" as GWJar
+    }
+
+    node "Pod: Backend Services" as PodBE {
+      component "Módulo Competições\n(:8081)" as SvcComp
+      component "Módulo Inscrições\n(:8082)" as SvcInsc
+      component "Módulo Alocação\n(:8083)" as SvcAloc
+      component "Módulo Resultados\n(:8084)" as SvcResult
+      component "Módulo Relatórios\n(:8085)" as SvcRel
+      artifact "olympics-backend.jar" as BackJar
+    }
+
+    node "Pod: Auth Service" as PodAuth {
+      component "Auth Service\n(OAuth 2.0 / JWT)" as AuthSvc
+      artifact "auth-service.jar" as AuthJar
+    }
+
+    node "Pod: Notificações" as PodNotif {
+      component "Notification Service\n(Email / Push)" as NotifSvc
+      artifact "notification.jar" as NotifJar
+    }
+  }
+
+  ' Camada de Dados
+  node "Cluster de Banco de Dados\n(Alta Disponibilidade)" as DBCluster <<database server>> {
+
+    node "Primário (RW)" as DBPrimary {
+      database "PostgreSQL\n(Principal)" as DBMain
+    }
+
+    node "Réplica (RO)" as DBReplica {
+      database "PostgreSQL\n(Réplica de Leitura)" as DBRead
+    }
+
+    node "Cache Layer" as CacheNode {
+      database "Redis Cluster\n(Cache / Sessões)" as Redis
+    }
+  }
+
+  ' Armazenamento
+  node "Armazenamento de Objetos\n(S3 / Blob Storage)" as Storage <<storage>> {
+    artifact "Relatórios PDF/Excel" as ReportFiles
+    artifact "Backups BD" as Backups
+  }
+
+  ' Monitoramento
+  node "Monitoramento &\nObservabilidade" as Monitor <<monitor>> {
+    component "Prometheus +\nGrafana" as Metrics
+    component "ELK Stack\n(Logs)" as ELK
+  }
+
+  ' Message Broker
+  node "Message Broker\n(Alta Disponibilidade)" as MQ <<server>> {
+    component "RabbitMQ /\nKafka" as Broker
+  }
+}
+
+' =====================
+' RELACIONAMENTOS
+' =====================
+
+' Usuários → DMZ
+Browser --> CDN : HTTPS
+MobileApp --> Firewall : HTTPS
+AdminBrowser --> CDN : HTTPS
+
+' DMZ → LB
+CDN --> Firewall : filtra
+Firewall --> LB : HTTPS :443
+
+' LB → Pods
+LB --> PodGW : distribui
+
+' Gateway → Services
+GWComp --> SvcComp : REST
+GWComp --> SvcInsc : REST
+GWComp --> SvcAloc : REST
+GWComp --> SvcResult : REST
+GWComp --> SvcRel : REST
+GWComp --> AuthSvc : valida JWT
+
+' Services → BD
+SvcComp --> DBMain : JDBC :5432
+SvcInsc --> DBMain : JDBC :5432
+SvcAloc --> DBMain : JDBC :5432
+SvcResult --> DBMain : JDBC :5432
+SvcRel --> DBRead : JDBC (somente leitura)
+
+' BD Replicação
+DBPrimary --> DBReplica : replicação assíncrona
+
+' Services → Cache
+SvcComp --> Redis : cache :6379
+SvcInsc --> Redis : sessões :6379
+
+' Services → Message Broker
+SvcInsc --> Broker : publica evento
+SvcResult --> Broker : publica resultado
+Broker --> NotifSvc : consome evento
+
+' Relatórios → Storage
+SvcRel --> Storage : salva arquivo
+
+' Monitoramento
+AppCluster --> Monitor : métricas / logs
+DBCluster --> Monitor : métricas / logs
+
+@enduml
